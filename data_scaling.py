@@ -89,6 +89,7 @@ def scaling(df, ordinal,nominal):
                 key_name = column+ "_<=_" + str(each)
                 new_df[key_name] = df.apply(lambda x: ordinal_scaling(each, x[column]), axis=1)
 
+    return new_df
 
 
 df = read_csv("GrandEST.csv", sep=";", columns = list(SELECTED_COLUMNS.keys()))
@@ -99,6 +100,6 @@ ordinal = ['AGER20']
 nominal = ['CS1']
 SELECTED_COLUMNS = ['CS1']
 
-result = scaling(df[SELECTED_COLUMNS], ordinal, nominal)
+result = scaling(df[SELECTED_COLUMNS][:100], ordinal, nominal)
 
 print(result)
