@@ -3,7 +3,7 @@ import sys
 from collections import defaultdict
 
 import pandas as pd
-
+import typing as t
 
 
 SELECTED_COLUMNS = {"SURF":"","NBPI":"", "NPERR":"", "CS1":"", "DIPL_15":"", "EMPL":""\
@@ -15,30 +15,49 @@ ordinal = ['AGER20', 'ANEMR', 'DIPL_15', 'NBPI', 'NPERR', 'SFM', 'SURF' ]
 nominal = ['CS1', 'DEPT', 'EMPL', 'ETUD', 'ILETUD', 'INAI', 'SEXE', 'TACT', 'TRANS', 'TYPL', 'UR']
 
 
-def nominal_operator(attribute, value):
-    """
-    """
-    if attribute == value:
-        return True
-    else:
-        return False
-    
-def ordinal_scaling(attribute_value, value):
-    """
-    """
-    if value <= attribute_value:
-        return True
-    else:
-        return False
-    
-    
-def interordinal_scaling(first_att, second_att, value):
-    
-    if (value <= first_att) and (value >= second_att):
-        return True
-    else:
-        return False
-    
+def scaling_nominal(df: pd.DataFrame, column: str):
+    # get all the unique values for the column
+    uniques = df[column].unique()
+
+    # copy the dataframe without the column we are replacing
+    df_scaled = df[[c for c in df.columns if c!= column]].copy()
+
+    for unique in uniques:
+        df_scaled[f"{column}={unique}"] = df[column] == unique
+
+    return df_scaled
+
+def scaling_ordinal(df: pd.DataFrame, column: str, order_list: t.List=None):
+    # get all the unique values for the column
+    uniques = df[column].unique()
+
+    # copy the dataframe without the column we are replacing
+    df_scaled = df[[c for c in df.columns if c!= column]].copy()
+
+    for unique in uniques:
+        if order_list:
+            df_scaled[f"{column}<={unique}"] = df[column].apply(order_list.index) <= order_list.index(unique)
+        else:
+            df_scaled[f"{column}<={unique}"] = df[column] <= unique
+
+    return df_scaled
+
+def scaling_interordinal(df: pd.DataFrame, column: str, order_list=None):
+    # get all the unique values for the column
+    uniques = df[column].unique()
+
+    # copy the dataframe without the column we are replacing
+    df_scaled = df[[c for c in df.columns if c!= column]].copy()
+
+    for unique in uniques:
+        if order_list:
+            df_scaled[f"{column}<={unique}"] = df[column].apply(order_list.index) <= order_list.index(unique)
+            df_scaled[f"{column}>={unique}"] = df[column].apply(order_list.index) >= order_list.index(unique)
+        else:
+            df_scaled[f"{column}<={unique}"] = df[column] <= unique
+            df_scaled[f"{column}>={unique}"] = df[column] >= unique
+
+    return df_scaled
     
 
 def read_csv(csvpath, sep=",", columns=None):
@@ -57,49 +76,3 @@ def read_csv(csvpath, sep=",", columns=None):
         return df[columns]
     else:
         return df
-
-def scaling(df, ordinal,nominal):
-    """
-
-    """
-    # getting unique values from each column and storing in a dictionary
-
-    columns_attribute = defaultdict()
-    for column in df:
-        print(column)
-        unique = df[column].unique()
-        columns_attribute[column] = unique
-        print("Unique value for column:", column, " are:")
-        print(unique)
-        print("---------------------------------------")
-
-    rows = []
-    new_df = pd.DataFrame([])
-
-    for column, unique in columns_attribute.items():
-
-        if column in nominal:
-            for each in unique:
-                key_name = column+ "_" + str(each)
-                new_df[key_name] = df.apply(lambda x: nominal_operator(each, x[column]), axis=1)
-
-    for column, unique in columns_attribute.items():
-        if column in ordinal:
-            for each in unique:
-                key_name = column+ "_<=_" + str(each)
-                new_df[key_name] = df.apply(lambda x: ordinal_scaling(each, x[column]), axis=1)
-
-    return new_df
-
-
-df = read_csv("GrandEST.csv", sep=";", columns = list(SELECTED_COLUMNS.keys()))
-# get the unique value and do scaling accordingly
-
-# this is test for two columns, comment these 3 lines to run on all
-ordinal = ['AGER20']
-nominal = ['CS1']
-SELECTED_COLUMNS = ['CS1']
-
-result = scaling(df[SELECTED_COLUMNS][:100], ordinal, nominal)
-
-print(result)
